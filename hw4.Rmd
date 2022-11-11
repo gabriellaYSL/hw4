@@ -1,18 +1,15 @@
-```{r}
 library(sf)
 library(tidyverse)
 library(tmap)
 library(tmaptools)
-```
 
-```{r}
-#read file
-csv0 <- read.csv("../HDR21-22_Composite_indices_complete_time_series.csv")
-shape0 <- st_read("../World_Countries_(Generalized)/World_Countries__Generalized_.shp")
+#read files
+csv0 <- read_csv("HDR21-22_Composite_indices_complete_time_series.csv", na="NULL")
+shape0 <- st_read("World_Countries_(Generalized)/World_Countries__Generalized_.shp")
 
-
-gi_csv<- csv0 %>%
-  dplyr::select(.,c("country",starts_with("gii"))) 
+#extract what I need
+gi_csv <- csv0 %>%
+  dplyr::select(.,c("country", starts_with("gii"))) 
 
 #join to the map data 
 shape <- shape0 %>%
@@ -20,28 +17,36 @@ shape <- shape0 %>%
         gi_csv,
         by.x="COUNTRY",
         by.y="country")
-#?as.numeric
 
 #calc
 shape <- shape %>%
-  mutate(., diff = gii_2019 - gii_2010 )
+  mutate(., diff = gii_2019 - gii_2010)
 
-
-```
+#remove the NA value
+shape_rm <- shape %>%
+  filter(diff != "NULL")
 
 #draw pics
-```{r}
 tmap_mode("plot")
 
-shape %>%
+shape_rm %>%
   qtm(.,fill = "diff")
 
-tm_shape(shape) + 
-tm_polygons("diff", 
-        style="pretty",
-        palett="Pastel1",
-        midpoint=NA,
-        title="Legend") +
+t= tm_shape(shape_rm) + 
+  tm_polygons("diff", 
+              style="pretty",
+              palett="Pastel1",
+              midpoint=NA,
+              title="Legend") +
   tm_layout(title = "Gender Inequality between 2010 & 2019", legend.position = c("left", "bottom"))
-```
 
+#export the map
+library(grid)
+tmap_save(t, 'gender_inequality.png')
+tmap_save(t, filename="gender_inequality.pdf", dpi=600)
+
+#make an interactive map
+tmap_mode("view")
+
+tm_shape(shape_rm) + 
+  tm_polygons("diff", breaks=NULL)
